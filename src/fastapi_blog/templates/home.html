@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div id="postsContainer" class="space-y-6">
+        {% for post in posts %}
+            <article class="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm transition hover:border-sky-200 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-sky-900/50">
+                <div class="flex items-start gap-4">
+                    <img class="h-16 w-16 shrink-0 rounded-full object-cover ring-2 ring-zinc-100 dark:ring-zinc-800"
+                         src="{{ post.author.image_path }}"
+                         alt="{{ post.author.username }}'s profile picture"
+                         width="64"
+                         height="64"
+                         loading="lazy">
+                    <div class="min-w-0 flex-1">
+                        <div class="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                            <a class="font-semibold text-sky-600 hover:text-sky-500 dark:text-sky-400 dark:hover:text-sky-300"
+                               href="{{ url_for("user_posts", user_id=post.author.id) }}">{{ post.author.username }}</a>
+                            <time class="text-zinc-500 dark:text-zinc-400"
+                                  datetime="{{ post.date_posted.isoformat() }}">{{ post.date_posted.strftime("%B %d, %Y") }}</time>
+                        </div>
+                        <h2 class="font-display text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                            <a class="hover:text-sky-600 dark:hover:text-sky-400"
+                               href="{{ url_for("post_page", post_id=post.id) }}">{{ post.title }}</a>
+                        </h2>
+                        <p class="mt-2 leading-relaxed text-zinc-600 dark:text-zinc-300">{{ post.content }}</p>
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+    {% if has_more %}
+        <div class="mt-8 text-center">
+            <button type="button"
+                    class="inline-flex items-center justify-center rounded-xl border-2 border-sky-600 px-6 py-2.5 text-sm font-semibold text-sky-600 transition hover:bg-sky-50 dark:border-sky-500 dark:text-sky-400 dark:hover:bg-sky-950/40"
+                    id="loadMoreBtn">Load More Posts</button>
+        </div>
+    {% endif %}
+{% endblock content %}
+{% block scripts %}
+    <script type="module">
+  import { escapeHtml, formatDate } from '/static/js/utils.js';
+
+  let currentOffset = {{ limit }};
+  const limit = {{ limit }};
+  let hasMore = {{ 'true' if has_more else 'false' }};
+
+  const postsContainer = document.getElementById('postsContainer');
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+  const postCardClasses = 'rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm transition hover:border-sky-200 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-sky-900/50';
+
+  function createPostHTML(post) {
+    return `
+      <article class="${postCardClasses}">
+        <div class="flex items-start gap-4">
+          <img class="h-16 w-16 shrink-0 rounded-full object-cover ring-2 ring-zinc-100 dark:ring-zinc-800" src="${escapeHtml(post.author.image_path)}" alt="${escapeHtml(post.author.username)}'s profile picture" width="64" height="64" loading="lazy">
+          <div class="min-w-0 flex-1">
+            <div class="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+              <a class="font-semibold text-sky-600 hover:text-sky-500 dark:text-sky-400 dark:hover:text-sky-300" href="/users/${post.author.id}/posts">${escapeHtml(post.author.username)}</a>
+              <span class="text-zinc-500 dark:text-zinc-400">${formatDate(post.date_posted)}</span>
+            </div>
+            <h2 class="font-display text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+              <a class="hover:text-sky-600 dark:hover:text-sky-400" href="/posts/${post.id}">${escapeHtml(post.title)}</a>
+            </h2>
+            <p class="mt-2 leading-relaxed text-zinc-600 dark:text-zinc-300">${escapeHtml(post.content)}</p>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  async function loadMorePosts() {
+    loadMoreBtn.disabled = true;
+    loadMoreBtn.textContent = 'Loading...';
+
+    let errorOccurred = false;
+
+    try {
+      const response = await fetch(`/api/posts?skip=${currentOffset}&limit=${limit}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch posts');
+      }
+
+      const data = await response.json();
+
+      for (const post of data.posts) {
+        postsContainer.insertAdjacentHTML('beforeend', createPostHTML(post));
+      }
+
+      currentOffset += data.posts.length;
+      hasMore = data.has_more;
+
+      if (!hasMore) {
+        loadMoreBtn.classList.add('hidden');
+      }
+    } catch (error) {
+      errorOccurred = true;
+      console.error('Error loading posts:', error);
+      loadMoreBtn.textContent = 'Error - Click to Retry';
+      loadMoreBtn.disabled = false;
+    } finally {
+      if (!errorOccurred && hasMore) {
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.textContent = 'Load More Posts';
+      }
+    }
+  }
+
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener('click', loadMorePosts);
+  }
+    </script>
+{% endblock scripts %}

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full scroll-smooth">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        {% if title %}
+            <title>FastAPI Blog — {{ title }}</title>
+        {% else %}
+            <title>FastAPI Blog</title>
+        {% endif %}
+        <meta name="description" content="FastAPI Tutorial">
+        <meta name="author" content="Corey Schafer">
+        <meta property="og:title" content="FastAPI Blog">
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="">
+        <meta property="og:image" content="">
+        <meta property="og:image:alt" content="">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Nunito:wght@400;500;600;700&display=swap"
+              rel="stylesheet">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ["Nunito", "system-ui", "sans-serif"],
+                            display: ["Montserrat", "system-ui", "sans-serif"],
+                        },
+                    },
+                },
+            };
+        </script>
+        <link rel="stylesheet"
+              type="text/css"
+              href="{{ url_for("static", path='css/main.css') }}">
+        <meta name="theme-color" content="#0ea5e9">
+        <link rel="icon"
+              href="{{ url_for('static', path='icons/favicon.ico') }}"
+              sizes="any">
+        <link rel="icon"
+              href="{{ url_for('static', path='icons/icon.svg') }}"
+              type="image/svg+xml">
+        <link rel="apple-touch-icon"
+              sizes="180x180"
+              href="{{ url_for('static', path='icons/icon.png') }}">
+        <link rel="manifest"
+              href="{{ url_for('static', path='site.webmanifest') }}">
+    </head>
+    <body class="flex min-h-full flex-col bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100">
+        <header class="sticky top-0 z-50 border-b border-zinc-200/80 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80">
+            <nav class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8"
+                 aria-label="Main">
+                <a href="{{ url_for("home") }}"
+                   class="font-display text-lg font-bold tracking-tight text-zinc-900 dark:text-white">FastAPI Blog</a>
+                <button type="button"
+                        id="navToggle"
+                        class="inline-flex items-center justify-center rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 md:hidden dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+                        aria-expanded="false"
+                        aria-controls="navMenu"
+                        aria-label="Toggle navigation">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
+                <div id="navMenu"
+                     class="hidden w-full flex-col gap-4 md:flex md:w-auto md:flex-row md:items-center md:justify-end">
+                    <a class="text-sm font-medium text-sky-600 dark:text-sky-400"
+                       href="{{ url_for("home") }}"
+                       aria-current="page">Home</a>
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center md:gap-3">
+                        <div id="loggedInNav" class="hidden flex-col gap-2 sm:flex-row sm:items-center">
+                            <button type="button"
+                                    id="openCreatePostBtn"
+                                    class="inline-flex items-center justify-center rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                                New Post
+                            </button>
+                            <a class="inline-flex items-center justify-center rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 dark:bg-sky-500 dark:hover:bg-sky-400"
+                               href="{{ url_for("account_page") }}"
+                               id="accountBtn">Account</a>
+                        </div>
+                        <div id="loggedOutNav" class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <a class="inline-flex items-center justify-center rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                               href="{{ url_for("login_page") }}">Login</a>
+                            <a class="inline-flex items-center justify-center rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 dark:bg-sky-500 dark:hover:bg-sky-400"
+                               href="{{ url_for("register_page") }}">Register</a>
+                        </div>
+                        <div class="relative">
+                            <button type="button"
+                                    id="themeMenuBtn"
+                                    class="inline-flex w-full items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 sm:w-auto"
+                                    aria-expanded="false"
+                                    aria-haspopup="true"
+                                    aria-controls="themeDropdown">
+                                <span id="bd-theme-text">🌗 Auto</span>
+                                <svg class="h-4 w-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                                </svg>
+                            </button>
+                            <div id="themeDropdown"
+                                 class="absolute right-0 z-10 mt-2 hidden min-w-[10rem] overflow-hidden rounded-xl border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                                 role="menu">
+                                <button type="button"
+                                        class="block w-full px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                        role="menuitem"
+                                        data-theme-value="light">🌝 Light</button>
+                                <button type="button"
+                                        class="block w-full px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                        role="menuitem"
+                                        data-theme-value="dark">🌚 Dark</button>
+                                <button type="button"
+                                        class="block w-full px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                        role="menuitem"
+                                        data-theme-value="auto">🌗 Auto</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
+            <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
+                <div class="min-w-0">
+                    {% block content %}
+                    {% endblock content %}
+                </div>
+                <aside class="lg:sticky lg:top-24 lg:self-start">
+                    <div class="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                        <h3 class="font-display text-lg font-semibold text-zinc-900 dark:text-white">Our Sidebar</h3>
+                        <p class="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">You can put any information here you'd like.</p>
+                        <ul class="mt-4 divide-y divide-zinc-200 rounded-xl border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+                            <li class="px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Latest Posts</li>
+                            <li class="px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Announcements</li>
+                            <li class="px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Calendars</li>
+                            <li class="px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">etc</li>
+                        </ul>
+                    </div>
+                </aside>
+            </div>
+        </main>
+        <footer class="mt-auto border-t border-zinc-200 bg-white py-6 dark:border-zinc-800 dark:bg-zinc-950">
+            <div class="mx-auto max-w-6xl px-4 text-center sm:px-6 lg:px-8">
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                    © <span id="year"></span> Corey Schafer
+                </p>
+            </div>
+        </footer>
+        <dialog id="createPostModal"
+                class="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-0 shadow-2xl backdrop:bg-zinc-950/60 dark:border-zinc-700 dark:bg-zinc-900">
+            <form id="createPostForm">
+                <div class="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+                    <h2 class="font-display text-lg font-semibold text-zinc-900 dark:text-white" id="createPostModalLabel">New Post</h2>
+                    <button type="button"
+                            class="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                            data-modal-close
+                            aria-label="Close">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="space-y-4 px-6 py-5">
+                    <div>
+                        <label for="title" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Title</label>
+                        <input type="text"
+                               class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
+                               id="title"
+                               name="title"
+                               required>
+                    </div>
+                    <div>
+                        <label for="content" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Content</label>
+                        <textarea class="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
+                                  id="content"
+                                  name="content"
+                                  rows="5"
+                                  required></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 border-t border-zinc-200 px-6 py-4 dark:border-zinc-800">
+                    <button type="button"
+                            class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                            data-modal-close>Cancel</button>
+                    <button type="submit"
+                            class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-500 dark:bg-sky-500 dark:hover:bg-sky-400">Post</button>
+                </div>
+            </form>
+        </dialog>
+        <dialog id="successModal"
+                class="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-0 shadow-2xl backdrop:bg-zinc-950/60 dark:border-zinc-700 dark:bg-zinc-900">
+            <div class="border-b border-emerald-600 bg-emerald-600 px-6 py-4 dark:border-emerald-500 dark:bg-emerald-600">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-display text-lg font-semibold text-white" id="successModalLabel">Success</h2>
+                    <button type="button"
+                            class="rounded-lg p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
+                            data-modal-close
+                            aria-label="Close">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="px-6 py-5">
+                <p id="successMessage" class="text-base text-zinc-700 dark:text-zinc-200"></p>
+            </div>
+            <div class="flex justify-end border-t border-zinc-200 px-6 py-4 dark:border-zinc-800">
+                <button type="button"
+                        class="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+                        data-modal-close>Close</button>
+            </div>
+        </dialog>
+        <dialog id="errorModal"
+                class="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-0 shadow-2xl backdrop:bg-zinc-950/60 dark:border-zinc-700 dark:bg-zinc-900">
+            <div class="border-b border-red-600 bg-red-600 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-display text-lg font-semibold text-white" id="errorModalLabel">Error</h2>
+                    <button type="button"
+                            class="rounded-lg p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
+                            data-modal-close
+                            aria-label="Close">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="px-6 py-5">
+                <p id="errorMessage" class="text-base text-zinc-700 dark:text-zinc-200"></p>
+            </div>
+            <div class="flex justify-end border-t border-zinc-200 px-6 py-4 dark:border-zinc-800">
+                <button type="button"
+                        class="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+                        data-modal-close>Close</button>
+            </div>
+        </dialog>
+        <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+        <script>
+            const showModal = (id) => document.getElementById(id)?.showModal?.();
+            const hideModal = (id) => document.getElementById(id)?.close?.();
+
+            document.querySelectorAll("[data-modal-close]").forEach((btn) => {
+                btn.addEventListener("click", () => btn.closest("dialog")?.close());
+            });
+
+            document.getElementById("openCreatePostBtn")?.addEventListener("click", () => showModal("createPostModal"));
+
+            const navToggle = document.getElementById("navToggle");
+            const navMenu = document.getElementById("navMenu");
+            navToggle?.addEventListener("click", () => {
+                const expanded = navToggle.getAttribute("aria-expanded") === "true";
+                navToggle.setAttribute("aria-expanded", String(!expanded));
+                navMenu?.classList.toggle("hidden");
+                navMenu?.classList.toggle("flex");
+            });
+
+            const themeMenuBtn = document.getElementById("themeMenuBtn");
+            const themeDropdown = document.getElementById("themeDropdown");
+            themeMenuBtn?.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const open = !themeDropdown.classList.contains("hidden");
+                themeDropdown.classList.toggle("hidden", open);
+                themeMenuBtn.setAttribute("aria-expanded", String(!open));
+            });
+            document.addEventListener("click", () => {
+                themeDropdown?.classList.add("hidden");
+                themeMenuBtn?.setAttribute("aria-expanded", "false");
+            });
+
+            const applyTheme = (theme) => {
+                const root = document.documentElement;
+                const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+                const isDark = theme === "dark" || (theme === "auto" && prefersDark);
+                root.classList.toggle("dark", isDark);
+                localStorage.setItem("theme", theme);
+                const themeText = { light: "🌝 Light", dark: "🌚 Dark", auto: "🌗 Auto" };
+                document.getElementById("bd-theme-text").textContent = themeText[theme];
+            };
+
+            document.querySelectorAll("[data-theme-value]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    applyTheme(button.getAttribute("data-theme-value"));
+                    themeDropdown?.classList.add("hidden");
+                });
+            });
+
+            applyTheme(localStorage.getItem("theme") || "auto");
+            window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+                if (localStorage.getItem("theme") === "auto") applyTheme("auto");
+            });
+        </script>
+        <script type="module">
+            import { getCurrentUser } from "/static/js/auth.js";
+
+            async function updateAuthUI() {
+                const user = await getCurrentUser();
+                const loggedInNav = document.getElementById("loggedInNav");
+                const loggedOutNav = document.getElementById("loggedOutNav");
+                const accountBtn = document.getElementById("accountBtn");
+
+                if (user) {
+                    loggedInNav.classList.remove("hidden");
+                    loggedInNav.classList.add("flex");
+                    loggedOutNav.classList.add("hidden");
+                    loggedOutNav.classList.remove("flex");
+                    accountBtn.textContent = user.username;
+                } else {
+                    loggedInNav.classList.add("hidden");
+                    loggedInNav.classList.remove("flex");
+                    loggedOutNav.classList.remove("hidden");
+                    loggedOutNav.classList.add("flex");
+                    accountBtn.textContent = "Account";
+                }
+            }
+
+            updateAuthUI();
+        </script>
+        <script type="module">
+            import { getErrorMessage } from "/static/js/utils.js";
+            import { getToken } from "/static/js/auth.js";
+
+            const createForm = document.getElementById("createPostForm");
+
+            createForm?.addEventListener("submit", async (event) => {
+                event.preventDefault();
+
+                const token = getToken();
+                if (!token) {
+                    window.location.href = "/login";
+                    return;
+                }
+
+                const formData = new FormData(createForm);
+                const postData = Object.fromEntries(formData.entries());
+
+                try {
+                    const response = await fetch("/api/posts", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify(postData),
+                    });
+
+                    if (response.status === 401) {
+                        window.location.href = "/login";
+                        return;
+                    }
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        document.getElementById("successMessage").textContent =
+                            `Post "${data.title}" created successfully!`;
+
+                        hideModal("createPostModal");
+                        showModal("successModal");
+
+                        createForm.reset();
+
+                        document.getElementById("successModal").addEventListener(
+                            "close",
+                            () => window.location.reload(),
+                            { once: true },
+                        );
+                    } else {
+                        const error = await response.json();
+                        document.getElementById("errorMessage").textContent = getErrorMessage(error);
+
+                        hideModal("createPostModal");
+                        showModal("errorModal");
+                    }
+                } catch {
+                    document.getElementById("errorMessage").textContent =
+                        "Network error. Please check your connection and try again.";
+                    showModal("errorModal");
+                }
+            });
+        </script>
+        {% block scripts %}
+        {% endblock scripts %}
+    </body>
+</html>

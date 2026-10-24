@@ -1,0 +1,5 @@
+{
+  "name": "FastAPI Blog",
+  "short_name": "Blog",
+  "icons": [{ "src": "/static/icons/icon.svg", "type": "image/svg+xml" }]
+}
