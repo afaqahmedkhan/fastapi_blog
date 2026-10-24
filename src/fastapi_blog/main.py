@@ -1,17 +1,27 @@
-from datetime import datetime
 from pathlib import Path as PathLib
 from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Path, Request
+from fastapi import FastAPI, HTTPException, Path, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from fastapi_blog.schemas import PostCreate, PostListResponse, PostPublic
+from fastapi_blog.store import (
+    POST_LIMIT,
+    create_post,
+    find_post_by_id,
+    get_post_by_id,
+    home_page_posts,
+    list_posts,
+    list_posts_by_author,
+)
+
 PACKAGE_DIR = PathLib(__file__).resolve().parent
 
-app = FastAPI()
+app = FastAPI(title="FastAPI Blog", version="0.1.0")
 
 templates = Jinja2Templates(directory=str(PACKAGE_DIR / "templates"))
 
@@ -102,143 +112,14 @@ app.mount(
     name="static",
 )
 
-POST_LIMIT = 10
 
-posts = [
-    {
-        "id": 1,
-        "author": {
-            "id": 1,
-            "username": "DadJokeMaster",
-            "image_path": "/static/icons/icon.svg",
-        },
-        "title": "Why don’t skeletons fight each other?",
-        "content": "They don’t have the guts!",
-        "date_posted": datetime(2026, 9, 17),
-    },
-    {
-        "id": 2,
-        "author": {
-            "id": 2,
-            "username": "PunnyParent",
-            "image_path": "/static/icons/icon.svg",
-        },
-        "title": "What do you call a fake noodle?",
-        "content": "An impasta!",
-        "date_posted": datetime(2026, 9, 16),
-    },
-    {
-        "id": 3,
-        "author": {
-            "id": 3,
-            "username": "JokeGenius",
-            "image_path": "/static/icons/icon.svg",
-        },
-        "title": "Why did the scarecrow win an award?",
-        "content": "Because he was outstanding in his field!",
-        "date_posted": datetime(2026, 9, 15),
-    },
-    {
-        "id": 4,
-        "author": {
-            "id": 4,
-            "username": "LaughingDad",
-            "image_path": "/static/icons/icon.svg",
-        },
-        "title": "What’s brown and sticky?",
-        "content": "A stick!",
-        "date_posted": datetime(2026, 9, 14),
-    },
-    {
-        "id": 5,
-        "author": {
-            "id": 5,
-            "username": "ChuckleChampion",
-            "image_path": "/static/icons/icon.svg",
-        },
-        "title": "How do you organize a space party?",
-        "content": "You planet!",
-        "date_posted": datetime(2026, 9, 13),
-    },
-    {
-        "id": 6,
-        "author": {
-            "id": 6,
-            "username": "DadJokeKing",
-            "image_path": "/static/icons/icon.svg",
-        },
-        "title": "Why can’t you trust an atom?",
-        "content": "Because they make up everything!",
-        "date_posted": datetime(2026, 9, 12),
-    },
-    {
-        "id": 7,
-        "author": {
-            "id": 7,
-            "username": "GiggleGuru",
-            "image_path": "/static/icons/icon.svg",
-        },
-        "title": "What’s the best time to go to the dentist?",
-        "content": "Tooth-hurty! (2:30)",
-        "date_posted": datetime(2026, 9, 11),
-    },
-    {
-        "id": 8,
-        "author": {
-            "id": 8,
-            "username": "ComedyDad",
-            "image_path": "/static/icons/icon.svg",
-        },
-        "title": "Why did the bicycle fall over?",
-        "content": "Because it was two-tired!",
-        "date_posted": datetime(2026, 9, 10),
-    },
-    {
-        "id": 9,
-        "author": {
-            "id": 9,
-            "username": "JesterDad",
-            "image_path": "/static/icons/icon.svg",
-        },
-        "title": "What do you call cheese that isn’t yours?",
-        "content": "Nacho cheese!",
-        "date_posted": datetime(2026, 9, 9),
-    },
-    {
-        "id": 10,
-        "author": {
-            "id": 10,
-            "username": "FunnyFather",
-            "image_path": "/static/icons/icon.svg",
-        },
-        "title": "Why did the math book look sad?",
-        "content": "Because it had too many problems!",
-        "date_posted": datetime(2026, 9, 8),
-    },
-]
-
-
-def find_post_by_id(post_id: int) -> dict | None:
-    return next((p for p in posts if p["id"] == post_id), None)
-
-
-def get_post_by_id(post_id: int) -> dict:
-    post = find_post_by_id(post_id)
-    if post is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Post with id {post_id} was not found",
-        )
-    return post
-
-
-def home_context():
-    visible = posts[:POST_LIMIT]
+def home_context() -> dict:
+    visible, has_more = home_page_posts()
     return {
         "posts": visible,
         "title": "Home",
         "limit": POST_LIMIT,
-        "has_more": len(posts) > POST_LIMIT,
+        "has_more": has_more,
     }
 
 
@@ -278,12 +159,23 @@ def post_page(
         "post.html",
         {
             "post": post,
-            "title": post["title"],
+            "title": post.title,
         },
     )
 
 
-@app.get("/api/v1/posts/{post_id}")
+@app.get("/api/v1/posts", response_model=PostListResponse)
+def get_posts(
+    skip: Annotated[int, Query(ge=0, description="Number of posts to skip.")] = 0,
+    limit: Annotated[
+        int,
+        Query(ge=1, le=100, description="Maximum number of posts to return."),
+    ] = POST_LIMIT,
+) -> PostListResponse:
+    return list_posts(skip=skip, limit=limit)
+
+
+@app.get("/api/v1/posts/{post_id}", response_model=PostPublic)
 def get_post(
     post_id: Annotated[
         int,
@@ -293,13 +185,21 @@ def get_post(
             description="Numeric identifier of the blog post (must be a positive integer).",
         ),
     ],
-):
+) -> PostPublic:
     return get_post_by_id(post_id)
 
 
+@app.post("/api/v1/posts", response_model=PostPublic, status_code=201)
+def post_create(post_in: PostCreate) -> PostPublic:
+    return create_post(post_in)
+
+
 @app.get("/users/{user_id}/posts", name="user_posts", include_in_schema=False)
-def user_posts(user_id: int, request: Request):
-    user_posts_list = [p for p in posts if p["author"]["id"] == user_id]
+def user_posts(
+    request: Request,
+    user_id: Annotated[int, Path(ge=1, title="User ID")],
+):
+    user_posts_list = list_posts_by_author(user_id)
     if not user_posts_list:
         raise HTTPException(status_code=404, detail="User not found")
     return templates.TemplateResponse(
@@ -307,7 +207,7 @@ def user_posts(user_id: int, request: Request):
         "home.html",
         {
             "posts": user_posts_list,
-            "title": f"{user_posts_list[0]['author']['username']}'s posts",
+            "title": f"{user_posts_list[0].author.username}'s posts",
             "limit": POST_LIMIT,
             "has_more": False,
         },
@@ -331,8 +231,3 @@ def account_page():
     return HTMLResponse(
         "<!doctype html><title>Account</title><p>Account — not implemented yet.</p>"
     )
-
-
-@app.get("/api/v1/posts")
-def get_posts():
-    return posts

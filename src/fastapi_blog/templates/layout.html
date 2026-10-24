@@ -9,7 +9,7 @@
             <title>FastAPI Blog</title>
         {% endif %}
         <meta name="description" content="FastAPI Tutorial">
-        <meta name="author" content="Corey Schafer">
+        <meta name="author" content="Afaq Ahmed Khan">
         <meta property="og:title" content="FastAPI Blog">
         <meta property="og:type" content="website">
         <meta property="og:url" content="">
@@ -143,7 +143,7 @@
         <footer class="mt-auto border-t border-zinc-200 bg-white py-6 dark:border-zinc-800 dark:bg-zinc-950">
             <div class="mx-auto max-w-6xl px-4 text-center sm:px-6 lg:px-8">
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                    © <span id="year"></span> Corey Schafer
+                    © <span id="year"></span> Afaq Ahmed Khan
                 </p>
             </div>
         </footer>
@@ -336,7 +336,7 @@
                 const postData = Object.fromEntries(formData.entries());
 
                 try {
-                    const response = await fetch("/api/posts", {
+                    const response = await fetch("/api/v1/posts", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
