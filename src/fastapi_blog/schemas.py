@@ -1,9 +1,8 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-DEFAULT_AVATAR_PATH = "/static/icons/icon.svg"
 
 PostIdPath = Annotated[
     int,
@@ -19,17 +18,14 @@ UserIdPath = Annotated[
     Field(
         ge=1,
         title="User ID",
-        description="Numeric identifier of the author (must be a positive integer).",
+        description="Numeric identifier of the user (must be a positive integer).",
     ),
 ]
 
 
-class AuthorBase(BaseModel):
-    username: str = Field(
-        min_length=2,
-        max_length=50,
-        description="Display name of the author.",
-    )
+class UserBase(BaseModel):
+    username: str = Field(min_length=2, max_length=50)
+    email: EmailStr
 
     @field_validator("username")
     @classmethod
@@ -40,24 +36,25 @@ class AuthorBase(BaseModel):
         return stripped
 
 
-class AuthorPublic(AuthorBase):
+class UserCreate(UserBase):
+    password: str = Field(min_length=8, max_length=128)
+
+
+class UserPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int = Field(ge=1)
-    image_path: str = Field(min_length=1, max_length=500)
+    username: str
+    image_path: str
+
+
+class UserDetail(UserPublic):
+    email: EmailStr
 
 
 class PostBase(BaseModel):
-    title: str = Field(
-        min_length=1,
-        max_length=200,
-        description="Headline shown on the blog index and post page.",
-    )
-    content: str = Field(
-        min_length=1,
-        max_length=10_000,
-        description="Body text of the post.",
-    )
+    title: str = Field(min_length=1, max_length=100)
+    content: str = Field(min_length=1, max_length=10_000)
 
     @field_validator("title", "content")
     @classmethod
@@ -69,10 +66,10 @@ class PostBase(BaseModel):
 
 
 class PostCreate(PostBase):
-    author_id: int = Field(
+    user_id: int = Field(
         default=1,
         ge=1,
-        description="ID of the author who wrote the post.",
+        description="ID of the user who authors the post.",
     )
 
 
@@ -80,8 +77,9 @@ class PostPublic(PostBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int = Field(ge=1)
-    author: AuthorPublic
+    author: UserPublic
     date_posted: datetime
+    likes: int = Field(ge=0, default=0)
 
 
 class PostListResponse(BaseModel):
